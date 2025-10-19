@@ -9,14 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Heart,
-  Moon,
-  Utensils,
-  Footprints,
-  Brain,
-  SendHorizontal,
-} from "lucide-react";
+import { Heart, Moon, Utensils, Footprints, Brain, SendHorizontal } from "lucide-react";
 
 type HealthDay = {
   day: string;
@@ -27,6 +20,7 @@ type HealthDay = {
 
 type Message = { role: "user" | "ai"; text: string };
 
+// 默认示例数据
 const defaultHealthData: HealthDay[] = [
   { day: "Mon", steps: 8200, sleep: 7, diet: "早餐：鸡蛋；午餐：米饭+蔬菜；晚餐：面条" },
   { day: "Tue", steps: 9000, sleep: 6.5, diet: "早餐：燕麦；午餐：炒饭；晚餐：鸡肉沙拉" },
@@ -37,19 +31,20 @@ const defaultHealthData: HealthDay[] = [
   { day: "Sun", steps: 8800, sleep: 7, diet: "早餐：牛奶+三明治；午餐：面条；晚餐：沙拉" },
 ];
 
+// 统计卡片组件
 const StatCard = ({
-  icon,
+  icon: Icon,
   label,
   value,
   color,
 }: {
-  icon: React.ReactNode; // 改为 React.ReactNode
+  icon: React.ElementType;
   label: string;
   value: string | number;
   color: string;
 }) => (
   <div className="bg-white p-4 rounded-2xl shadow text-center">
-    {React.cloneElement(icon as React.ReactElement, { className: `mx-auto ${color}`, size: 32 })}
+    <Icon className={`mx-auto ${color}`} size={32} />
     <p className="text-sm text-gray-500">{label}</p>
     <p className="text-xl font-bold">{value}</p>
   </div>
@@ -71,6 +66,7 @@ export default function HealthMate() {
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // 自动滚动聊天
   useEffect(() => {
     chatContainerRef.current?.scrollTo({
       top: chatContainerRef.current.scrollHeight,
@@ -78,9 +74,11 @@ export default function HealthMate() {
     });
   }, [messages]);
 
+  // 今日索引
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayData = healthData[todayIndex];
 
+  // 添加/更新今日数据
   const handleAddTodayData = () => {
     const steps = parseInt(stepsInput) || todayData.steps;
     const sleep = parseFloat(sleepInput) || todayData.sleep;
@@ -93,12 +91,13 @@ export default function HealthMate() {
     setDietInput("");
   };
 
+  // AI 健康建议（最近三天数据）
   const generateAIAdvice = async () => {
     setLoadingAdvice(true);
     try {
       const recentThree = healthData.slice(-3);
       const summary = recentThree
-        .map(d => `${d.day}: 步数 ${d.steps}, 睡眠 ${d.sleep}小时, 饮食: ${d.diet}`)
+        .map((d) => `${d.day}: 步数 ${d.steps}, 睡眠 ${d.sleep}小时, 饮食: ${d.diet}`)
         .join("； ");
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -118,15 +117,16 @@ export default function HealthMate() {
 
   useEffect(() => {
     generateAIAdvice();
-    const interval = setInterval(generateAIAdvice, 1000 * 60 * 60 * 24);
+    const interval = setInterval(generateAIAdvice, 1000 * 60 * 60 * 24); // 每24小时刷新
     return () => clearInterval(interval);
   }, [healthData]);
 
+  // 发送聊天消息
   const sendMessage = async () => {
     if (!chatInput.trim() || sending) return;
     const input = chatInput;
     const userMsg: Message = { role: "user", text: input };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setChatInput("");
     setSending(true);
 
@@ -138,9 +138,12 @@ export default function HealthMate() {
       });
       const data = await res.json();
       const aiMsg: Message = { role: "ai", text: data.reply || "AI 暂时没有回复。" };
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [...prev, aiMsg]);
     } catch {
-      setMessages(prev => [...prev, { role: "ai", text: "❌ 网络错误或API调用失败。" }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: "❌ 网络错误或API调用失败。" },
+      ]);
     } finally {
       setSending(false);
     }
@@ -154,19 +157,19 @@ export default function HealthMate() {
 
       {/* 今日健康概览 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <StatCard icon={<Footprints />} label="步数" value={todayData.steps.toLocaleString()} color="text-blue-500" />
-        <StatCard icon={<Moon />} label="睡眠" value={`${todayData.sleep} 小时`} color="text-indigo-500" />
-        <StatCard icon={<Heart />} label="心率" value="76 bpm" color="text-red-500" />
-        <StatCard icon={<Utensils />} label="饮食" value={todayData.diet} color="text-green-500" />
+        <StatCard icon={Footprints} label="步数" value={todayData.steps.toLocaleString()} color="text-blue-500" />
+        <StatCard icon={Moon} label="睡眠" value={`${todayData.sleep} 小时`} color="text-indigo-500" />
+        <StatCard icon={Heart} label="心率" value="76 bpm" color="text-red-500" />
+        <StatCard icon={Utensils} label="饮食" value={todayData.diet} color="text-green-500" />
       </section>
 
       {/* 添加/修改今日数据 */}
       <section className="bg-white p-6 rounded-2xl shadow mb-10">
         <h2 className="text-lg font-semibold mb-3">✏️ 添加/修改今日数据</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input type="number" placeholder="步数" className="border rounded-lg p-2" value={stepsInput} onChange={e => setStepsInput(e.target.value)} />
-          <input type="number" step="0.1" placeholder="睡眠小时" className="border rounded-lg p-2" value={sleepInput} onChange={e => setSleepInput(e.target.value)} />
-          <input type="text" placeholder="饮食" className="border rounded-lg p-2" value={dietInput} onChange={e => setDietInput(e.target.value)} />
+          <input type="number" placeholder="步数" className="border rounded-lg p-2" value={stepsInput} onChange={(e) => setStepsInput(e.target.value)} />
+          <input type="number" step="0.1" placeholder="睡眠小时" className="border rounded-lg p-2" value={sleepInput} onChange={(e) => setSleepInput(e.target.value)} />
+          <input type="text" placeholder="饮食" className="border rounded-lg p-2" value={dietInput} onChange={(e) => setDietInput(e.target.value)} />
         </div>
         <button onClick={handleAddTodayData} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
           保存今日数据
@@ -181,7 +184,7 @@ export default function HealthMate() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="day" />
             <YAxis />
-            <Tooltip formatter={(value, name) => name === "步数" ? value.toLocaleString() : value} />
+            <Tooltip formatter={(value, name) => (name === "步数" ? value.toLocaleString() : value)} />
             <Line type="monotone" dataKey="steps" stroke="#3b82f6" name="步数" />
             <Line type="monotone" dataKey="sleep" stroke="#10b981" name="睡眠（小时）" />
           </LineChart>
@@ -191,45 +194,7 @@ export default function HealthMate() {
       {/* AI 健康建议 */}
       <section className="bg-white p-6 rounded-2xl shadow mb-10">
         <h2 className="text-lg font-semibold mb-3">🤖 AI 健康建议</h2>
-        {loadingAdvice ? (
-          <p className="text-gray-500">正在生成建议...</p>
-        ) : (
-          <p className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">{aiAdvice}</p>
-        )}
-      </section>
-
-      {/* AI 聊天助手 */}
-      <section className="bg-white p-6 rounded-2xl shadow mb-10">
-        <h2 className="text-lg font-semibold mb-3">💬 AI 健康对话助手</h2>
-        <div ref={chatContainerRef} className="h-64 overflow-y-auto border rounded-lg p-3 mb-3 bg-gray-50">
-          {messages.length === 0 ? (
-            <p className="text-gray-400 text-center mt-10">👋 你好，我是你的AI健康助手，有什么想咨询的吗？</p>
-          ) : messages.map((msg, i) => (
-            <div key={i} className={`my-2 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] px-4 py-2 rounded-2xl ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`}>
-                {msg.text}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="输入你的问题..."
-            className="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && sendMessage()}
-            disabled={sending}
-          />
-          <button
-            onClick={sendMessage}
-            className={`bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 ${sending ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={sending}
-          >
-            <SendHorizontal size={20} />
-          </button>
-        </div>
+        {loadingAdvice ? <p className="text-gray-500">正在生成建议...</p> : <p className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">{aiAdvice}</p>}
       </section>
 
       {/* 历史健康数据 */}
@@ -256,6 +221,42 @@ export default function HealthMate() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      {/* AI 聊天助手 */}
+      <section className="bg-white p-6 rounded-2xl shadow mb-10">
+        <h2 className="text-lg font-semibold mb-3">💬 AI 健康对话助手</h2>
+        <div ref={chatContainerRef} className="h-64 overflow-y-auto border rounded-lg p-3 mb-3 bg-gray-50">
+          {messages.length === 0 ? (
+            <p className="text-gray-400 text-center mt-10">👋 你好，我是你的AI健康助手，有什么想咨询的吗？</p>
+          ) : (
+            messages.map((msg, i) => (
+              <div key={i} className={`my-2 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] px-4 py-2 rounded-2xl ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="输入你的问题..."
+            className="flex-1 border rounded-lg p-2 focus:ring-2 focus:ring-blue-400"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            disabled={sending}
+          />
+          <button
+            onClick={sendMessage}
+            className={`bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 ${sending ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={sending}
+          >
+            <SendHorizontal size={20} />
+          </button>
         </div>
       </section>
 
