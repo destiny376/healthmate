@@ -71,6 +71,7 @@ export default function HealthMate() {
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // 自动滚动聊天
   useEffect(() => {
     chatContainerRef.current?.scrollTo({
       top: chatContainerRef.current.scrollHeight,
@@ -78,9 +79,11 @@ export default function HealthMate() {
     });
   }, [messages]);
 
+  // 今日索引
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayData = healthData[todayIndex];
 
+  // 添加/更新今日数据
   const handleAddTodayData = () => {
     const steps = parseInt(stepsInput) || todayData.steps;
     const sleep = parseFloat(sleepInput) || todayData.sleep;
@@ -93,14 +96,13 @@ export default function HealthMate() {
     setDietInput("");
   };
 
+  // AI 健康建议（最近三天数据）
   const generateAIAdvice = async () => {
     setLoadingAdvice(true);
     try {
       const recentThree = healthData.slice(-3);
       const summary = recentThree
-        .map(
-          (d) => `${d.day}: 步数 ${d.steps}, 睡眠 ${d.sleep}小时, 饮食: ${d.diet}`
-        )
+        .map((d) => `${d.day}: 步数 ${d.steps}, 睡眠 ${d.sleep}小时, 饮食: ${d.diet}`)
         .join("； ");
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -118,10 +120,12 @@ export default function HealthMate() {
     }
   };
 
+  // 每天刷新 AI 健康建议
   useEffect(() => {
     generateAIAdvice();
   }, [healthData]);
 
+  // 发送聊天消息
   const sendMessage = async () => {
     if (!chatInput.trim() || sending) return;
     const input = chatInput;
@@ -129,6 +133,7 @@ export default function HealthMate() {
     setMessages((prev) => [...prev, userMsg]);
     setChatInput("");
     setSending(true);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -170,7 +175,9 @@ export default function HealthMate() {
           <input type="number" step="0.1" placeholder="睡眠小时" className="border rounded-lg p-2" value={sleepInput} onChange={(e) => setSleepInput(e.target.value)} />
           <input type="text" placeholder="饮食" className="border rounded-lg p-2" value={dietInput} onChange={(e) => setDietInput(e.target.value)} />
         </div>
-        <button onClick={handleAddTodayData} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">保存今日数据</button>
+        <button onClick={handleAddTodayData} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+          保存今日数据
+        </button>
       </section>
 
       {/* 健康趋势图 */}
@@ -186,6 +193,16 @@ export default function HealthMate() {
             <Line type="monotone" dataKey="sleep" stroke="#10b981" name="睡眠（小时）" />
           </LineChart>
         </ResponsiveContainer>
+      </section>
+
+      {/* AI 健康建议 */}
+      <section className="bg-white p-6 rounded-2xl shadow mb-10">
+        <h2 className="text-lg font-semibold mb-3">🤖 AI 健康建议</h2>
+        {loadingAdvice ? (
+          <p className="text-gray-500">正在生成建议...</p>
+        ) : (
+          <p className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">{aiAdvice}</p>
+        )}
       </section>
 
       {/* 历史健康数据 */}
@@ -215,17 +232,6 @@ export default function HealthMate() {
         </div>
       </section>
 
-      {/* AI 健康建议 */}
-      <section className="bg-white p-6 rounded-2xl shadow mb-10">
-        <h2 className="text-lg font-semibold mb-3">🤖 AI 健康建议</h2>
-        {loadingAdvice ? (
-          <p className="text-gray-500">正在生成建议...</p>
-        ) : (
-          <p className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">{aiAdvice}</p>
-        )}
-        <button onClick={generateAIAdvice} className="mt-2 text-sm text-blue-500 hover:underline">刷新建议</button>
-      </section>
-
       {/* AI 聊天助手 */}
       <section className="bg-white p-6 rounded-2xl shadow mb-10">
         <h2 className="text-lg font-semibold mb-3">💬 AI 健康对话助手</h2>
@@ -242,7 +248,6 @@ export default function HealthMate() {
             ))
           )}
         </div>
-
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -263,6 +268,7 @@ export default function HealthMate() {
         </div>
       </section>
 
+      {/* 心理鼓励 */}
       <section className="text-center text-gray-600">
         <Brain className="mx-auto mb-2" size={32} />
         <p>保持平衡生活，每天进步一点点 💪</p>
